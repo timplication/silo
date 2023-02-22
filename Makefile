@@ -11,7 +11,7 @@ CHECK_INVARIANTS ?= 0
 # 3 = flow
 USE_MALLOC_MODE ?= 1
 
-MYSQL ?= 1
+MYSQL ?= 0
 MYSQL_SHARE_DIR ?= /x/stephentu/mysql-5.5.29/build/sql/share
 
 # Available modes
@@ -75,7 +75,7 @@ else
 	$(error invalid mode)
 endif
 
-CXXFLAGS := -g -Wall -std=c++0x
+CXXFLAGS := -g -Wall -std=c++11
 CXXFLAGS += -MD -Ithird-party/lz4 -DCONFIG_H=\"$(CONFIG_H)\"
 ifeq ($(DEBUG_S),1)
         CXXFLAGS += -fno-omit-frame-pointer -DDEBUG

@@ -204,6 +204,8 @@ main(int argc, char **argv)
     test_fn = encstress_do_test;
   else if (bench_type == "bid")
     test_fn = bid_do_test;
+  else if (bench_type == "schedule")
+    test_fn = schedule_do_test;
   else
     ALWAYS_ASSERT(false);
 
