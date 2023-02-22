@@ -5,10 +5,14 @@
 #include <map>
 #include <string>
 
+#include "../macros.h"
+#include "../varkey.h"
+#include "../thread.h"
+#include "../util.h"
+#include "../spinbarrier.h"
 #include "../core.h"
 
 #include "bench.h"
-#include "schedule.h"
 
 using namespace std;
 using namespace util;
@@ -24,90 +28,24 @@ class schedule_loader : public bench_loader {
             string obj_buf;
             void *txn = db->new_txn(txn_flags, arena, txn_buf());
 
-            // Warehouse Tuples
-            // Warehouse(1, 80000)
-            const warehouse::key w_k1;
-            w_k1.w_id = 1;
-            const warehouse::value w_v1;
-            w_v1.w_ytd = 80000;
-            open_tables["warehouse"]->insert(txn, Encode(w_k1), Encode(obj_buf, w_v1));
-
+            // Warehouse(1, 8000000)
+            open_tables["warehouse"]->insert(txn, "1", "8000000");
             // Warehouse(2, 1600000)
-            const warehouse::key w_k2;
-            w_k2.w_id = 2;
-            const warehouse::value w_v1;
-            w_v2.w_ytd = 1600000;
-            open_tables["warehouse"]->insert(txn, Encode(w_k2), Encode(obj_buf, w_v2));
-
-            // District Tuples
-            // District(1, 1, 80000)
-            const district::key d_k1;
-            d_k1.d_w_id = 1;
-            d_k1.d_id = 1;
-            const district::value d_v1;
-            d_v1.d_ytd = 80000;
-            open_tables["district"]->insert(txn, Encode(d_k1), Encode(obj_buf, d_v1));
-
+            open_tables["warehouse"]->insert(txn, "2", "1600000");
+            // District(1, 1, 8000000)
+            open_tables["district"]->insert(txn, "1,1", "8000000");
             // District(2, 2, 1600000)
-            const district::key d_k2;
-            d_k2.d_w_id = 2;
-            d_k2.d_id = 2;
-            const district::value d_v2;
-            d_v2.d_ytd = 1600000;
-            open_tables["district"]->insert(txn, Encode(d_k2), Encode(obj_buf, d_v2));
-
-            // Customer Tuples
+            open_tables["district"]->insert(txn, "2,2", "1600000");
             // Customer(1, 1, 1, 1000)
-            const customer::key c_k1;
-            c_k1.c_w_id = 1;
-            c_k1.c_d_id = 1;
-            c_k1.c_id = 1;
-            const customer::value c_v1;
-            c_v1.c_balance = 1000;
-            open_tables["customer"]->insert(txn, Encode(c_k1), Encode(obj_buf, c_v1));
-
+            open_tables["customer"]->insert(txn, "1,1,1", "1000");
             // Customer(2, 2, 2, 5000)
-            const customer::key c_k2;
-            c_k2.c_w_id = 2;
-            c_k2.c_d_id = 2;
-            c_k2.c_id = 2;
-            const customer::value c_v2;
-            c_v2.c_balance = 5000;
-            open_tables["customer"]->insert(txn, Encode(c_k2), Encode(obj_buf, c_v2));
-
-            // Order Tuple
+            open_tables["customer"]->insert(txn, "2,2,2", "5000");
             // Order(1, 1, 1, 1, 1)
-            const order::key o_k1;
-            o_k1.o_w_id = 1;
-            o_k1.o_d_id = 1;
-            o_k1.o_id = 1;
-            const order::value o_v1;
-            o_v1.o_c_id = 1;
-            o_v1.o_carrier_id = 1;
-            open_tables["order"]->insert(txn, Encode(o_k1), Encode(obj_buf, o_v1));
-
-            // OrderLine Tuples
+            open_tables["order"]->insert(txn, "1,1,1", "1,1");
             // OrderLine(1, 1, 1, 1, 50.0)
-            const order_line::key ol_k1;
-            ol_k1.ol_w_id = 1;
-            ol_k1.ol_d_id = 1;
-            ol_k1.ol_o_id = 1;
-            ol_k1.ol_number = 1;
-            const order_line::value ol_v1;
-            ol_v1.ol_delivery_d = 1;
-            ol_v1.ol_amount = 50.0;
-            open_tables["order_line"]->insert(txn, Encode(ol_k1), Encode(obj_buf, ol_v1));
-
+            open_tables["order_line"]->insert(txn, "1,1,1,1", "1,50.0");
             // OrderLine(1, 1, 1, 2, 25.0)
-            const order_line::key ol_k2;
-            ol_k2.ol_w_id = 1;
-            ol_k2.ol_d_id = 1;
-            ol_k2.ol_o_id = 1;
-            ol_k2.ol_number = 2;
-            const order_line::value ol_v2;
-            ol_v2.ol_delivery_d = 1;
-            ol_v2.ol_amount = 25.0;
-            open_tables["order_line"]->insert(txn, Encode(ol_k2), Encode(obj_buf, ol_v2));
+            open_tables["order_line"]->insert(txn, "1,1,1,2", "1,25.0");
 
             ALWAYS_ASSERT(db->commit_txn(txn));
             arena.reset();
@@ -181,11 +119,11 @@ class schedule_worker : public bench_worker {
 class schedule_bench_runner: public bench_runner {
     public:
         schedule_bench_runner(abstract_db *db) : bench_runner(db) {
-            open_tables["warehouse"] = db->open_index("warehouse", size_of(warehouse));
-            open_tables["district"] = db->open_index("district", size_of(district));
-            open_tables["customer"] = db->open_index("customer", size_of(customer));
-            open_tables["order"] = db->open_index("order", size_of(order));
-            open_tables["order_line"] = db->open_index("order_line", size_of(order_line));
+            open_tables["warehouse"] = db->open_index("warehouse", 128);
+            open_tables["district"] = db->open_index("district", 128);
+            open_tables["customer"] = db->open_index("customer", 128);
+            open_tables["order"] = db->open_index("order", 128);
+            open_tables["order_line"] = db->open_index("order_line", 128);
         }
 
     protected:
