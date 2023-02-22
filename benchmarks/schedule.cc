@@ -127,7 +127,7 @@ class schedule_worker : public bench_worker {
 
             // Operation 5: R[t_3: Customer{1, 1, 1, BAL}]
             open_tables["customer"]->get(txn, "1,1,1", obj_v);
-            uint bal = stoi(bal);
+            uint bal = stoi(obj_v);
 
             // Operation 6: W[t_3: Customer{BAL + 100}]
             open_tables["customer"]->put(txn, "1,1,1", to_string(bal + 100));
@@ -166,7 +166,7 @@ class schedule_worker : public bench_worker {
 
             // Operation 5: R[t_9: Customer{2, 2, 2, BAL}]
             open_tables["customer"]->get(txn, "2,2,2", obj_v);
-            uint bal = stoi(bal);
+            uint bal = stoi(obj_v);
 
             // Operation 6: W[t_9: Customer{BAL + 200}]
             open_tables["customer"]->put(txn, "2,2,2", to_string(bal + 200));
@@ -208,7 +208,7 @@ class schedule_worker : public bench_worker {
 
             // R[t_6: OrderLine{1, 1, 1, 2, DEL_2, AMT_2}]
             open_tables["order_line"]->get(txn, "1,1,1,2", obj_v);
-            size_t idx = obj_v.find(',');
+            idx = obj_v.find(',');
             uint del_2 = stoi(obj_v.substr(0, idx));
             uint amt_2 = stoi(obj_v.substr(idx+1));
 
